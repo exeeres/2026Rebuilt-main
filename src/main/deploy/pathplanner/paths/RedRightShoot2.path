@@ -1,0 +1,79 @@
+{
+  "version": "2025.0",
+  "waypoints": [
+    {
+      "anchor": {
+        "x": 8.784,
+        "y": 3.7225888888888887
+      },
+      "prevControl": null,
+      "nextControl": {
+        "x": 9.509566666666666,
+        "y": 4.952077777777777
+      },
+      "isLocked": false,
+      "linkedName": "EndRedRightGetBall"
+    },
+    {
+      "anchor": {
+        "x": 13.087177777777777,
+        "y": 5.698
+      },
+      "prevControl": {
+        "x": 11.887922222222219,
+        "y": 5.748388888888889
+      },
+      "nextControl": {
+        "x": 13.339704350167555,
+        "y": 5.687389639815556
+      },
+      "isLocked": false,
+      "linkedName": null
+    },
+    {
+      "anchor": {
+        "x": 14.5,
+        "y": 5.698
+      },
+      "prevControl": {
+        "x": 14.250303814011176,
+        "y": 5.685678689086205
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": "RedRightFire"
+    }
+  ],
+  "rotationTargets": [
+    {
+      "waypointRelativePos": 0.4842105263157894,
+      "rotationDegrees": -135.0
+    },
+    {
+      "waypointRelativePos": 1.4295532646048164,
+      "rotationDegrees": -135.0
+    }
+  ],
+  "constraintZones": [],
+  "pointTowardsZones": [],
+  "eventMarkers": [],
+  "globalConstraints": {
+    "maxVelocity": 3.0,
+    "maxAcceleration": 3.0,
+    "maxAngularVelocity": 540.0,
+    "maxAngularAcceleration": 720.0,
+    "nominalVoltage": 12.0,
+    "unlimited": false
+  },
+  "goalEndState": {
+    "velocity": 0,
+    "rotation": -147.3154137294033
+  },
+  "reversed": false,
+  "folder": "RedRightShoot",
+  "idealStartingState": {
+    "velocity": 0,
+    "rotation": 90.0
+  },
+  "useDefaultConstraints": true
+}
