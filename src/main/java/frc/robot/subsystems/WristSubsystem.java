@@ -8,14 +8,12 @@ import com.revrobotics.spark.config.SparkFlexConfig;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.RobotContainer;
 import frc.robot.Constants.WristConstants;
 
 public class WristSubsystem extends SubsystemBase{
     
-    private SparkFlex leftWrist;
-    private SparkFlex rightWrist;
-
-    private SparkFlexConfig rightConfig;
+    private SparkFlex wristMotor;
     /*
      * Clockwise = Down 
      * Counter Clockwise = Up
@@ -31,21 +29,15 @@ public class WristSubsystem extends SubsystemBase{
     private double minLimit;
 
     public WristSubsystem(){
-        leftWrist = new SparkFlex(WristConstants.leftWristID, MotorType.kBrushless);
-        rightWrist = new SparkFlex(WristConstants.rightWristID, MotorType.kBrushless);
+        wristMotor = new SparkFlex(WristConstants.wristID, MotorType.kBrushless);
 
-        rightConfig = new SparkFlexConfig();
+        wristEncoder = wristMotor.getEncoder();
 
-        rightConfig.follow(WristConstants.leftWristID, true);
+        pidController = new PIDController(0.4, 0.0, 0.0);
+        pidController.setTolerance(0.1);
 
-
-        wristEncoder = leftWrist.getEncoder();
-
-        pidController = new PIDController(0.1, 0.0, 0.0);
-        pidController.setTolerance(0.3);
-
-        maxLimit = 14.5;
-        minLimit = 0;
+        maxLimit = 15;
+        minLimit = -15;
     }
 
     public void rotateIn(){
@@ -59,13 +51,14 @@ public class WristSubsystem extends SubsystemBase{
     }
     
     public void rotateOut(){
-        position = position - 0.2;
+        position = position - 2;
+        /*
         if(position > maxLimit){
             position = maxLimit;
         }
         if(position < minLimit){
             position = minLimit;
-        }
+        }*/
     }
     public void stop() {
         position = wristEncoder.getPosition(); // Save position to hold
@@ -80,7 +73,7 @@ public class WristSubsystem extends SubsystemBase{
     public void holdPosition() {
         double output = pidController.calculate(wristEncoder.getPosition(), position);
         SmartDashboard.putNumber("Wrist Position", position);
-        setPosition(output);
+        wristMotor.set(output);
     }
 
     @Override

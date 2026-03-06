@@ -148,6 +148,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        configureAutoBuilder();
     }
 
     /**
@@ -327,7 +328,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     public void resetPose(Pose2d pose) {
-        this.resetPose(pose);  // Phoenix base reset
+        this.resetPose(pose);  // Phoenix base reset; //may cause problem: super.resetPose(pose)
     }
 
     /** --- PathPlanner AutoBuilder setup --- */

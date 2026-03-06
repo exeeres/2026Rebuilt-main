@@ -30,7 +30,6 @@ public final class Constants {
     
   public static class WristConstants{
     //WRIST
-    public static int leftWristID = 18;
-    public static int rightWristID = 19;
+    public static int wristID = 18;
   }
 }

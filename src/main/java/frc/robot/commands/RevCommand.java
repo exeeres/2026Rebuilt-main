@@ -19,7 +19,7 @@ public class RevCommand extends Command{
   public void initialize() {  }
   @Override
   public void execute(){
-    m_shootersubsystem.speedUp(ShooterConstants.shootSpeed, revTime);
+    m_shootersubsystem.speedUp(ShooterConstants.shootSpeed);
   }
 
   @Override

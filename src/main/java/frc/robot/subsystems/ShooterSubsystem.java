@@ -20,33 +20,24 @@ public class ShooterSubsystem extends SubsystemBase{
 
         leftShoot = new SparkFlex(ShooterConstants.outLeftID, MotorType.kBrushless);
         rightShoot = new SparkFlex(ShooterConstants.outRightID, MotorType.kBrushless);
-
         feed = new SparkFlex(ShooterConstants.feedID, MotorType.kBrushless);
 
     }
 
-    public void speedUp(double speed, double speedUpTime){
-        startTime = Timer.getFPGATimestamp();
+    public void speedUp(double speed){
+        leftShoot.set(-speed); // clockwise
+        rightShoot.set(speed); //counterclockwise
         
-        while(Timer.getFPGATimestamp() - startTime < speedUpTime){
-            leftShoot.set(-speed); // clockwise
-            rightShoot.set(speed); //counterclockwise
-        }
     }
 
-    public void fire(double fireSpeed, double shootTime){
-        startTime = Timer.getFPGATimestamp();
-        while(Timer.getFPGATimestamp() - startTime < shootTime){
+    public void fire(double fireSpeed){
         feed.set(-0.3);
-
         leftShoot.set(-fireSpeed);
         rightShoot.set(fireSpeed);
-        }
     }
     
     public void stop(){
         feed.set(0);
-
         leftShoot.set(0);
         rightShoot.set(0);
     }

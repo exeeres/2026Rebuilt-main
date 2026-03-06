@@ -18,13 +18,15 @@ public class ShootCommand extends Command {
 
   @Override
   public void initialize() {}
-  @Override
-  public void execute(){
-    m_shootersubsystem.fire(ShooterConstants.shootSpeed, shootTime);
-  }
+
   @Override
   public boolean isFinished() {
-    m_shootersubsystem.stop();
     return true;
+  }
+
+  @Override
+  public void end(boolean interrupted) {
+     m_shootersubsystem.stop();
+
   }
 }

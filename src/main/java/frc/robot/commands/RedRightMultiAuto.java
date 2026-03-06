@@ -16,19 +16,16 @@ public class RedRightMultiAuto extends SequentialCommandGroup{
     addCommands(
         new PathPlannerAuto("RedRightMultiShoot"),
 
-        Commands.runOnce(() -> shooter.speedUp(ShooterConstants.autoShooterSpeed, 1.37), shooter),
+        new TimedShootCommand(shooter, ShooterConstants.autoShooterSpeed, 1.37, 2.0),
         new WaitCommand(1.37),
 
-        Commands.runOnce(() -> shooter.fire(ShooterConstants.autoShooterSpeed, 2), shooter),
         new WaitCommand(4.5),
 
-        Commands.run(() -> intake.timedRun(1.5), intake),
+        new TimedIntakeCommand(intake, 1.5),
         new WaitCommand(2.87),
 
-        Commands.runOnce(() -> shooter.speedUp(ShooterConstants.autoShooterSpeed, 1), shooter),
-        new WaitCommand(1),
+        new TimedShootCommand(shooter, ShooterConstants.autoShooterSpeed, 1.0, 2.0)
 
-        Commands.runOnce(() -> shooter.fire(ShooterConstants.autoShooterSpeed, 2), shooter)
 
         );  
     }
