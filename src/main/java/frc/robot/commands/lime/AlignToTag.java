@@ -66,7 +66,7 @@ public class AlignToTag extends Command {
                 drive.withVelocityX(xSpeed * MAX_SPEED)
                      .withVelocityY(ySpeed * MAX_SPEED)
                      .withRotationalRate(0)
-            ).execute();
+            );
             return;
         }
 
@@ -87,7 +87,11 @@ public class AlignToTag extends Command {
 
     @Override
     public void end(boolean interrupted) {
-        drivetrain.applyRequest(() -> brake).execute();
+        drivetrain.setControl(
+            drive.withVelocityX(0)
+                 .withVelocityY(0)
+                 .withRotationalRate(0)
+        );
     }
 
     private double applyDeadband(double value) {

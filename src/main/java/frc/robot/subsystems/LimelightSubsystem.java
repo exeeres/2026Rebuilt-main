@@ -7,6 +7,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -19,25 +20,28 @@ public class LimelightSubsystem extends SubsystemBase {
     // =====================================================
     // Constants — TUNE THESE
     // =====================================================
-    private static final String kLimelightName = "limelight"; // change if renamed
+    private static final String kLimelightName = "limelight";
 
-    private static final double kRotP           = 0.02;
-    private static final double kRotI           = 0.0;
-    private static final double kRotD           = 0.001;
-    private static final double kMaxRotOut      = 0.6;
-    private static final double kAlignTolerance = 1.0;  // degrees
+    // Rotation PID
+    private static final double kRotP            = 0.02;
+    private static final double kRotI            = 0.0;
+    private static final double kRotD            = 0.001;
+    private static final double kMaxRotOut       = 0.6;
+    private static final double kAlignTolerance  = 1.0;  // degrees
 
-    private static final double kCameraHeightMeters = 0.5;
-    private static final double kCameraAngleDegrees = 30.0;
-    private static final double kTargetHeightMeters = 1.45;
-
-    private static final double kMaxTagDistanceMeters = 4.0;
+    // Pose estimation
+    private static final double kMaxTagDistanceMeters = 10.0;
     private static final double kMaxSpinRateDegPerSec = 720.0;
 
-    public static final int kGoalTagID = 7; // CHANGE to your target tag
+    // Alliance tag IDs — CHANGE to real 2026 hub tag IDs
+    private static final int kRedTagID  = 10;
+    private static final int kBlueTagID = 26;
+
+    // Debounce — frames before declaring target lost
+    private static final int kTargetLostThreshold = 5;
 
     // =====================================================
-    // Subsystems
+    // Hardware
     // =====================================================
     private final CommandSwerveDrivetrain drivetrain;
     private final Field2d field = new Field2d();
@@ -50,10 +54,12 @@ public class LimelightSubsystem extends SubsystemBase {
     // =====================================================
     // State
     // =====================================================
-    private double  rotationOutput   = 0.0;
-    private double  distanceToTarget = 0.0;
-    private boolean hasTarget        = false;
-    private int     currentTagID     = -1;
+    private double      rotationOutput   = 0.0;
+    private double      distanceToTarget = 0.0;
+    private boolean     hasTarget        = false;
+    private int         currentTagID     = -1;
+    private RawFiducial bestTag          = null;
+    private int         targetLostCount  = 0;
 
     // =====================================================
     // Constructor
@@ -62,7 +68,7 @@ public class LimelightSubsystem extends SubsystemBase {
         this.drivetrain = drivetrain;
 
         rotPID.setTolerance(kAlignTolerance);
-        // No enableContinuousInput — tx is relative, not absolute
+        rotPID.setSetpoint(0);
 
         SmartDashboard.putData("Field", field);
     }
@@ -84,17 +90,7 @@ public class LimelightSubsystem extends SubsystemBase {
     // =====================================================
     private void updateRobotOrientation() {
         double yaw = drivetrain.getState().Pose.getRotation().getDegrees();
-
-        // Officially supported method — works on all Limelight versions
-        LimelightHelpers.SetRobotOrientation(
-            kLimelightName,
-            yaw,  // yaw degrees
-            0,    // yaw rate
-            0,    // pitch
-            0,    // pitch rate
-            0,    // roll
-            0     // roll rate
-        );
+        LimelightHelpers.SetRobotOrientation(kLimelightName, yaw, 0, 0, 0, 0, 0);
     }
 
     // =====================================================
@@ -107,63 +103,71 @@ public class LimelightSubsystem extends SubsystemBase {
         );
         if (spinRate > kMaxSpinRateDegPerSec) return;
 
-        // MegaTag2 — uses robot heading for field-relative pose
         PoseEstimate mt2 = LimelightHelpers.getBotPoseEstimate_wpiBlue_MegaTag2(kLimelightName);
 
-        if (mt2 == null)           return;
-        if (mt2.tagCount == 0)     return;
+        if (mt2 == null)                            return;
+        if (mt2.tagCount == 0)                      return;
         if (mt2.avgTagDist > kMaxTagDistanceMeters) return;
 
+        // Reject bad single tag readings
+        if (mt2.tagCount == 1 && mt2.rawFiducials.length == 1) {
+            if (mt2.rawFiducials[0].ambiguity > 0.9)    return;
+            if (mt2.rawFiducials[0].distToCamera > 3.0) return;
+        }
+
         // Scale trust by distance and tag count
-        // More tags + closer distance = smaller stdDev = more trust
+        // Closer + more tags = smaller stdDev = more trust
         double xyStdDev = 0.5 * (mt2.avgTagDist / mt2.tagCount);
+        Matrix<N3, N1> stdDevs = VecBuilder.fill(xyStdDev, xyStdDev, 9999999);
 
-        Matrix<N3, N1> stdDevs = VecBuilder.fill(
-            xyStdDev,
-            xyStdDev,
-            9999999  // Don't correct rotation — let Pigeon2 handle it
-        );
-
-        drivetrain.addVisionMeasurement(
-            mt2.pose,
-            mt2.timestampSeconds,
-            stdDevs
-        );
+        drivetrain.addVisionMeasurement(mt2.pose, mt2.timestampSeconds, stdDevs);
     }
 
     // =====================================================
-    // 3. Track target tag — compute rotation PID + distance
+    // 3. Track target tag — rotation PID + distance
     // =====================================================
     private void updateTargetTracking() {
-        rotationOutput   = 0.0;
-        distanceToTarget = 0.0;
-        hasTarget        = false;
-        currentTagID     = -1;
 
         RawFiducial[] fiducials = LimelightHelpers.getRawFiducials(kLimelightName);
-        if (fiducials == null || fiducials.length == 0) return;
 
-        // Prefer goal tag, fall back to closest tag
-        RawFiducial bestTag = null;
+        // Debounce — only drop target after 5 consecutive missed frames
+        if (fiducials == null || fiducials.length == 0) {
+            targetLostCount++;
+            if (targetLostCount >= kTargetLostThreshold) {
+                rotationOutput   = 0.0;
+                distanceToTarget = 0.0;
+                hasTarget        = false;
+                currentTagID     = -1;
+                bestTag          = null;
+            }
+            return;
+        }
+
+        // Tag seen — reset lost counter
+        targetLostCount = 0;
+
+        // Pick goal tag based on alliance
+        int goalTagID = DriverStation.getAlliance()
+            .map(a -> a == DriverStation.Alliance.Red ? kRedTagID : kBlueTagID)
+            .orElse(-1);
+
+        // Prefer goal tag, fall back to first visible tag
+        bestTag = null;
         for (RawFiducial tag : fiducials) {
-            if (tag.id == kGoalTagID) {
+            if (tag.id == goalTagID) {
                 bestTag = tag;
                 break;
             }
         }
         if (bestTag == null) bestTag = fiducials[0];
 
-        hasTarget    = true;
-        currentTagID = bestTag.id;
-
-        // tx from RawFiducial is txnc (principal pixel — most accurate)
-        double tx  = bestTag.txnc;
-        double raw = rotPID.calculate(tx, 0.0);
-        rotationOutput = MathUtil.clamp(raw, -kMaxRotOut, kMaxRotOut);
-
-        // Distance from camera geometry using distToCamera directly
-        // LimelightHelpers gives us this for free — no ty math needed!
+        hasTarget        = true;
+        currentTagID     = bestTag.id;
         distanceToTarget = bestTag.distToCamera;
+
+        // Rotation PID — drives txnc to 0
+        double rawRot = rotPID.calculate(bestTag.txnc, 0.0);
+        rotationOutput = MathUtil.clamp(rawRot, -kMaxRotOut, kMaxRotOut);
     }
 
     // =====================================================
@@ -175,6 +179,7 @@ public class LimelightSubsystem extends SubsystemBase {
         SmartDashboard.putNumber ("Limelight/RotationOutput", rotationOutput);
         SmartDashboard.putNumber ("Limelight/DistanceMeters", distanceToTarget);
         SmartDashboard.putNumber ("Limelight/CurrentTagID",   currentTagID);
+        SmartDashboard.putNumber ("Limelight/txnc",           bestTag != null ? bestTag.txnc : 0);
         SmartDashboard.putNumber ("Limelight/RobotYaw",
             drivetrain.getState().Pose.getRotation().getDegrees());
 

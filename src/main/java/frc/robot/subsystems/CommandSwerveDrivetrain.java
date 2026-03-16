@@ -328,7 +328,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
 
     public void resetPose(Pose2d pose) {
-        this.resetPose(pose);  // Phoenix base reset; //may cause problem: super.resetPose(pose)
+        this.resetPose(pose);  // Phoenix base reset
     }
 
     /** --- PathPlanner AutoBuilder setup --- */
@@ -377,4 +377,3 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     }
     
 }
-

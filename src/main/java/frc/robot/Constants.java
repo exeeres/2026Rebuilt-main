@@ -16,9 +16,11 @@ public final class Constants {
     public static int outLeftID = 14;
     public static int feedID = 16;
 
-    public static double shootSpeed = 0.5;
     public static double revTime = 1;
+    public static double revSpeed = 0.8;
+
     public static double shootTime = 3;
+    public static double shootSpeed = 0.7;
 
     public static double autoShooterSpeed = 0.5;
   }
@@ -26,10 +28,13 @@ public final class Constants {
   public static class IntakeConstants{
     //INTAKE
     public static int intakeID = 17;
+
+    public static double intakeSpeed = 4;
   }
     
   public static class WristConstants{
     //WRIST
     public static int wristID = 18;
+    public static double wristOutPostion = -2.06;
   }
 }
