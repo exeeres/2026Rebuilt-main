@@ -24,7 +24,9 @@ import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.WristSubsystem;
 import frc.robot.subsystems.LimelightSubsystem;
-import frc.robot.commands.RevandFeedCommand;
+import frc.robot.commands.Feed;
+import frc.robot.commands.Rev;
+import frc.robot.commands.Reverse;
 
 public class RobotContainer {
 
@@ -75,12 +77,14 @@ public class RobotContainer {
     private void configureBindings() {
 
         kdriverController.x().whileTrue(new AlignToTag(drivetrain, limelight, () -> -kdriverController.getLeftY(),  // forward/back
-                () -> -kdriverController.getLeftX()));
-        koperatorController.rightBumper().whileTrue(new RevandFeedCommand(shootersubsystem, limelight));
+            () -> -kdriverController.getLeftX()));
+        koperatorController.rightBumper().whileTrue(new Rev(shootersubsystem, limelight));
         koperatorController.a().whileTrue(Commands.startEnd(
             () -> shootersubsystem.enableTuningMode(),
-        () -> shootersubsystem.disableTuningMode()
-        ));
+            () -> {shootersubsystem.disableTuningMode();
+            shootersubsystem.stop();}));
+        koperatorController.leftBumper().whileTrue(new Feed(shootersubsystem));
+        koperatorController.b().whileTrue(new Reverse(shootersubsystem));
 
 
         // Note that X is defined as forward according to WPILib convention,
